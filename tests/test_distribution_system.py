@@ -191,3 +191,31 @@ def test_substation_feeder_subsystem_retains_only_matching_outfeeds():
         for component in feeder_subsystem.iter_all_components()
         if getattr(component, "feeder", None) is not None
     )
+
+
+def test_combined_substation_distribution_to_gdf():
+    from gdm.systems.substation.reference_designs import (
+        hv_mv_substation_with_distribution_feeders,
+    )
+
+    station, all_feeders = hv_mv_substation_with_distribution_feeders()
+    boundaries = list(station.get_components(FeederBoundary))
+    feeder_systems = []
+    for boundary in boundaries:
+        boundary.source_equivalent_id = f"{boundary.feeder_id}-source-bus"
+        feeder_system = DistributionSystem(
+            name=f"{boundary.feeder_id}-system", auto_add_composed_components=True
+        )
+        for component in all_feeders.iter_all_components():
+            feeder = getattr(component, "feeder", None)
+            if feeder is None or feeder.name != boundary.feeder_id:
+                continue
+            if not feeder_system.has_component(component):
+                feeder_system.add_component(component)
+        feeder_systems.append(feeder_system)
+
+    complete_system = station.to_distribution_system(feeder_systems)
+    result = complete_system.to_gdf()
+
+    assert not result.empty
+    assert {"Point", "LineString"} <= set(result.geometry.geom_type)
