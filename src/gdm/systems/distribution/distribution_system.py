@@ -716,9 +716,10 @@ class DistributionSystem(System):
         """
         edge_data = defaultdict(list)
         system_crs = None
+        buses = {bus.name: bus for bus in self.get_components(DistributionBus)}
         for u, v, data in graph.edges(data=True):
-            bus1 = self.get_component(DistributionBus, u)
-            bus2 = self.get_component(DistributionBus, v)
+            bus1 = buses[u]
+            bus2 = buses[v]
             x1, y1 = bus1.coordinate.x, bus1.coordinate.y
             x2, y2 = bus2.coordinate.x, bus2.coordinate.y
 
